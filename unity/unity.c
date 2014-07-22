@@ -28,9 +28,14 @@ const char* UnityStrDelta    = " Values Not Within Delta ";
 const char* UnityStrPointless= " You Asked Me To Compare Nothing, Which Was Pointless.";
 const char* UnityStrNullPointerForExpected= " Expected pointer to be NULL";
 const char* UnityStrNullPointerForActual  = " Actual pointer was NULL";
+const char* UnityStrNot      = "Not ";
 const char* UnityStrInf      = "Infinity";
 const char* UnityStrNegInf   = "Negative Infinity";
 const char* UnityStrNaN      = "NaN";
+const char* UnityStrDet      = "Determinate";
+const char* UnityStrErrFloat = "Unity Floating Point Disabled";
+const char* UnityStrErrDouble= "Unity Double Precision Disabled";
+const char* UnityStrErr64    = "Unity 64-bit Support Disabled";
 
 #ifndef UNITY_EXCLUDE_FLOAT
 // Dividing by these constants produces +/- infinity.
@@ -613,74 +618,61 @@ void UnityAssertFloatsWithin(const _UF delta,
 }
 
 //-----------------------------------------------
-void UnityAssertFloatIsInf(const _UF actual,
-                           const char* msg,
-                           const UNITY_LINE_TYPE lineNumber)
+void UnityAssertFloatSpecial(const _UF actual,
+                             const char* msg,
+                             const UNITY_LINE_TYPE lineNumber,
+                             const UNITY_FLOAT_TRAIT_T style)
 {
     UNITY_SKIP_EXECUTION;
 
-    // In Microsoft Visual C++ Express Edition 2008,
-    //   if ((1.0f / f_zero) != actual)
-    // produces
-    //   error C2124: divide or mod by zero
-    // As a workaround, place 0 into a variable.
-    if ((1.0f / f_zero) != actual)
+    const char* trait_names[] = { UnityStrInf, UnityStrNegInf, UnityStrNaN, UnityStrDet };
+    _U_SINT should_be_trait   = ((_U_SINT)style & 1);
+    _U_SINT is_trait          = !should_be_trait;
+    _U_SINT trait_index       = style >> 1;
+
+    switch(style)
     {
-        UnityTestResultsFailBegin(lineNumber);
-#ifdef UNITY_FLOAT_VERBOSE
-        UnityPrint(UnityStrExpected);
-        UnityPrint(UnityStrInf);
-        UnityPrint(UnityStrWas);
-        UnityPrintFloat(actual);
-#else
-        UnityPrint(UnityStrDelta);
-#endif
-        UnityAddMsgIfSpecified(msg);
-        UNITY_FAIL_AND_BAIL;
+        //To determine Inf / Neg Inf, we compare to an Inf / Neg Inf value we create on the fly
+        //We are using a variable to hold the zero value because some compilers complain about dividing by zero otherwise
+        case UNITY_FLOAT_IS_INF:
+        case UNITY_FLOAT_IS_NOT_INF:
+            is_trait = ((1.0f / f_zero) == actual) ? 1 : 0;
+            break;
+        case UNITY_FLOAT_IS_NEG_INF:
+        case UNITY_FLOAT_IS_NOT_NEG_INF:
+            is_trait = ((-1.0f / f_zero) == actual) ? 1 : 0;
+            break;
+
+        //NaN is the only floating point value that does NOT equal itself. Therefore if Actual == Actual, then it is NOT NaN.
+        case UNITY_FLOAT_IS_NAN:
+        case UNITY_FLOAT_IS_NOT_NAN:
+            is_trait = (actual == actual) ? 0 : 1;
+            break;
+
+        //A determinate number is non infinite and not NaN. (therefore the opposite of the two above)
+        case UNITY_FLOAT_IS_DET:
+        case UNITY_FLOAT_IS_NOT_DET:
+            if ( (actual != actual) || ((1.0f / f_zero) == actual) || ((-1.0f / f_zero) == actual) )
+                is_trait = 0;
+            else
+                is_trait = 1;
+            break;
     }
-}
 
-//-----------------------------------------------
-void UnityAssertFloatIsNegInf(const _UF actual,
-                              const char* msg,
-                              const UNITY_LINE_TYPE lineNumber)
-{
-    UNITY_SKIP_EXECUTION;
-
-    // The rationale for not using 1.0f/0.0f is given in UnityAssertFloatIsInf's body.
-    if ((-1.0f / f_zero) != actual)
+    if (is_trait != should_be_trait)
     {
         UnityTestResultsFailBegin(lineNumber);
-#ifdef UNITY_FLOAT_VERBOSE
         UnityPrint(UnityStrExpected);
-        UnityPrint(UnityStrNegInf);
+        if (!should_be_trait)
+            UnityPrint(UnityStrNot);
+        UnityPrint(trait_names[trait_index]);
         UnityPrint(UnityStrWas);
+#ifdef UNITY_FLOAT_VERBOSE
         UnityPrintFloat(actual);
 #else
-        UnityPrint(UnityStrDelta);
-#endif
-        UnityAddMsgIfSpecified(msg);
-        UNITY_FAIL_AND_BAIL;
-    }
-}
-
-//-----------------------------------------------
-void UnityAssertFloatIsNaN(const _UF actual,
-                           const char* msg,
-                           const UNITY_LINE_TYPE lineNumber)
-{
-    UNITY_SKIP_EXECUTION;
-
-    if (actual == actual)
-    {
-        UnityTestResultsFailBegin(lineNumber);
-#ifdef UNITY_FLOAT_VERBOSE
-        UnityPrint(UnityStrExpected);
-        UnityPrint(UnityStrNaN);
-        UnityPrint(UnityStrWas);
-        UnityPrintFloat(actual);
-#else
-        UnityPrint(UnityStrDelta);
+        if (should_be_trait)
+            UnityPrint(UnityStrNot);
+        UnityPrint(trait_names[trait_index]);
 #endif
         UnityAddMsgIfSpecified(msg);
         UNITY_FAIL_AND_BAIL;
@@ -785,75 +777,68 @@ void UnityAssertDoublesWithin(const _UD delta,
 }
 
 //-----------------------------------------------
-void UnityAssertDoubleIsInf(const _UD actual,
-                            const char* msg,
-                            const UNITY_LINE_TYPE lineNumber)
+
+void UnityAssertDoubleSpecial(const _UD actual,
+                              const char* msg,
+                              const UNITY_LINE_TYPE lineNumber,
+                              const UNITY_FLOAT_TRAIT_T style)
 {
     UNITY_SKIP_EXECUTION;
 
-    // The rationale for not using 1.0/0.0 is given in UnityAssertFloatIsInf's body.
-    if ((1.0 / d_zero) != actual)
+    const char* trait_names[] = { UnityStrInf, UnityStrNegInf, UnityStrNaN, UnityStrDet };
+    _U_SINT should_be_trait   = ((_U_SINT)style & 1);
+    _U_SINT is_trait          = !should_be_trait;
+    _U_SINT trait_index       = style >> 1;
+
+    switch(style)
+    {
+        //To determine Inf / Neg Inf, we compare to an Inf / Neg Inf value we create on the fly
+        //We are using a variable to hold the zero value because some compilers complain about dividing by zero otherwise
+        case UNITY_FLOAT_IS_INF:
+        case UNITY_FLOAT_IS_NOT_INF:
+            is_trait = ((1.0 / d_zero) == actual) ? 1 : 0;
+            break;
+        case UNITY_FLOAT_IS_NEG_INF:
+        case UNITY_FLOAT_IS_NOT_NEG_INF:
+            is_trait = ((-1.0 / d_zero) == actual) ? 1 : 0;
+            break;
+
+        //NaN is the only floating point value that does NOT equal itself. Therefore if Actual == Actual, then it is NOT NaN.
+        case UNITY_FLOAT_IS_NAN:
+        case UNITY_FLOAT_IS_NOT_NAN:
+            is_trait = (actual == actual) ? 0 : 1;
+            break;
+
+        //A determinate number is non infinite and not NaN. (therefore the opposite of the two above)
+        case UNITY_FLOAT_IS_DET:
+        case UNITY_FLOAT_IS_NOT_DET:
+            if ( (actual != actual) || ((1.0 / d_zero) == actual) || ((-1.0 / d_zero) == actual) )
+                is_trait = 0;
+            else
+                is_trait = 1;
+            break;
+    }
+
+    if (is_trait != should_be_trait)
     {
         UnityTestResultsFailBegin(lineNumber);
-#ifdef UNITY_DOUBLE_VERBOSE
         UnityPrint(UnityStrExpected);
-        UnityPrint(UnityStrInf);
+        if (!should_be_trait)
+            UnityPrint(UnityStrNot);
+        UnityPrint(trait_names[trait_index]);
         UnityPrint(UnityStrWas);
-        UnityPrintFloat((float)actual);
+#ifdef UNITY_DOUBLE_VERBOSE
+        UnityPrintFloat(actual);
 #else
-        UnityPrint(UnityStrDelta);
+        if (should_be_trait)
+            UnityPrint(UnityStrNot);
+        UnityPrint(trait_names[trait_index]);
 #endif
         UnityAddMsgIfSpecified(msg);
         UNITY_FAIL_AND_BAIL;
     }
 }
 
-//-----------------------------------------------
-void UnityAssertDoubleIsNegInf(const _UD actual,
-                               const char* msg,
-                               const UNITY_LINE_TYPE lineNumber)
-{
-    UNITY_SKIP_EXECUTION;
-
-    // The rationale for not using 1.0/0.0 is given in UnityAssertFloatIsInf's body.
-    if ((-1.0 / d_zero) != actual)
-    {
-        UnityTestResultsFailBegin(lineNumber);
-#ifdef UNITY_DOUBLE_VERBOSE
-        UnityPrint(UnityStrExpected);
-        UnityPrint(UnityStrNegInf);
-        UnityPrint(UnityStrWas);
-        UnityPrintFloat((float)actual);
-#else
-        UnityPrint(UnityStrDelta);
-#endif
-        UnityAddMsgIfSpecified(msg);
-        UNITY_FAIL_AND_BAIL;
-    }
-}
-
-//-----------------------------------------------
-void UnityAssertDoubleIsNaN(const _UD actual,
-                            const char* msg,
-                            const UNITY_LINE_TYPE lineNumber)
-{
-    UNITY_SKIP_EXECUTION;
-
-    if (actual == actual)
-    {
-        UnityTestResultsFailBegin(lineNumber);
-#ifdef UNITY_DOUBLE_VERBOSE
-        UnityPrint(UnityStrExpected);
-        UnityPrint(UnityStrNaN);
-        UnityPrint(UnityStrWas);
-        UnityPrintFloat((float)actual);
-#else
-        UnityPrint(UnityStrDelta);
-#endif
-        UnityAddMsgIfSpecified(msg);
-        UNITY_FAIL_AND_BAIL;
-    }
-}
 
 #endif // not UNITY_EXCLUDE_DOUBLE
 
@@ -1093,8 +1078,8 @@ void UnityIgnore(const char* msg, const UNITY_LINE_TYPE line)
 
 //-----------------------------------------------
 #ifdef UNITY_SUPPORT_WEAK
-void setUp(void) { }
-void tearDown(void) { }
+UNITY_WEAK void setUp(void) { }
+UNITY_WEAK void tearDown(void) { }
 #else
 void setUp(void);
 void tearDown(void);
