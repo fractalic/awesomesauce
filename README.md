@@ -1,6 +1,8 @@
-# README #
+# Dr Surly's School For Mad Scientists: #
 
-This is a collection of project starters for those taking our class on Testing C. Clone it and use it as instructed in class.
+## Unit Testing & Other Embedded Software Catalysts ##
+
+This is a collection of project starters for those taking our class. Clone it and use it as instructed in class.
 
 ### What is this repository for? ###
 
@@ -9,4 +11,6 @@ This is a collection of project starters for those taking our class on Testing C
 
 ### Problems? ###
 
-* Please let your friendly instructors know if you have any issues. We'll do our best to resolve them.
+* Please let your [friendly instructors](mailto:tdd@thingamabyte.com) know if you have any issues. We'll do our best to resolve them.
+* You may find useful resources at [ThrowTheSwitch](http://throwtheswitch.org)
+* You may also share your concerns on our [Forums](http://throwtheswitch.org/forums)

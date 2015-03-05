@@ -3,9 +3,9 @@
 int Fibonacci_GetElement(int num)
 {
    int i;
-   int first = 1;
+   int first  = 1;
    int second = 1;
-   int next;
+   int next   = 1;
 
    if (i <= 1)
      return 1;
@@ -23,9 +23,9 @@ int Fibonacci_GetElement(int num)
 int Fibonacci_IsInSequence(int num)
 {
    int i;
-   int first = 1;
+   int first  = 1;
    int second = 1;
-   int next;
+   int next   = 1;
 
    if (i <= 0)
      return 0;
