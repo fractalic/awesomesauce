@@ -1,4 +1,5 @@
 #include "Fib.h"
+#define FIB_MAX_ELEMENT (45)
 
 int Fibonacci_GetElement(int num)
 {
@@ -7,9 +8,9 @@ int Fibonacci_GetElement(int num)
    int second = 1;
    int next   = 1;
 
-   if (num <= 1)
-     return 1;
-   for (i = 2; i < num; i++)
+   if (num < 0 || (num > FIB_MAX_ELEMENT))
+     return 0;
+   for (i = 2; i <= num; i++)
    {
      next = first + second;
      first = second;
@@ -31,7 +32,7 @@ int Fibonacci_IsInSequence(int num)
      return 0;
    if (num == 1)
      return 1;
-   for (i = 2; ((next > num) || (next <= 0)); i++)
+   for (i = 2; ((next < num) || (next <= 0)); i++)
    {
      next = first + second;
      if (next == num)
