@@ -118,6 +118,8 @@ void test_that_0_not_in_sequence(void)
 
 void test_that_negative_numbers_not_in_sequence(void)
 {
+    TEST_ASSERT_FALSE(1);
+    
     int nonElements[] = {-1, -10, -1007, INT_MIN};
     int i;
     
